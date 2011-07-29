@@ -16,6 +16,17 @@ class Perssonal {
 	
 	public $return_data;
 	
+	protected $_allowed_params = array(
+	  'author_id',
+	  'channel',
+	  'category_group',
+	  'category',
+	  'group_id',
+	  'search:*',
+	  'status',
+	  'username'
+	);
+	
   /**
   * Constructor
   */
@@ -23,29 +34,133 @@ class Perssonal {
 	{
 		$this->EE =& get_instance();
 	}
-	
-	
-	function feeds()
-	{
-	  
-	}
-	
+		
 	function feed()
 	{
-	  $this->hash = $this->_fetch_param('hash');
+	  $hash = $this->_fetch_param('hash');
+	  
+	  $feed = $this->EE->db->where('hash', $hash)->limit('1')->get('perssonal_feeds');
+	  
+	  if ($feed->num_rows() === 0)
+	  {
+	    $this->_log('No feed found with hash '.$hash);
+	    return FALSE;
+	  }
+	  
+	  $meta = unserialize($feed->row('meta'));
+	  $params = unserialize($feed->row('params'));
+	  
+	  $param_str = "disable='pagination' dynamic='no'";
+	  
+	  if ( ! is_array($params) OR count($params) === 0)
+	  {
+	    $this->_log('No or invalid parameters given.');
+	    return FALSE;
+	  }
+	  
+	  foreach ($params as $key => $val)
+	  {
+	    $param_str .= " {$key}='{$val}'";
+	  }
+
+	  
+	  $vars = array(
+	    'feed_name' => $meta['feed_name'],
+	    'feed_url' => $meta['feed_url'],
+	    'feed_description' => $meta['feed_description'],
+	    'feed_language' => $this->EE->config->item('xml_lang'),
+	    'email' => $this->EE->config->item('webmaster_email'),
+	    'gmt_date' => $this->EE->localize->now,
+      'parameters' => $param_str
+	  );
+	  
+	  return $this->EE->TMPL->parse_variables_row($this->EE->TMPL->tagdata, $vars);
+	  
 	}
 	
 	function link()
 	{
-	  $this->params = $this->_fetch_params();
+	  $params = $this->_fetch_params();
+	  $meta = array(
+      'feed_url' => $this->_make_absolute_url($this->_fetch_param('feed_url')),
+      'feed_name' => $this->_fetch_param('feed_name'),
+      'feed_description' => $this->_fetch_param('feed_description')
+    );
+	  $url = $this->_fetch_param('url');
+	  $feed_url = '';
 	  
-	  debug($this->params);
+	  $params_str = serialize($params);
+	  $meta_str = serialize($meta);
+	  $hash = md5($params_str.$meta_str);
+
+	  $feeds = $this->EE->db->where('hash', $hash)->get('perssonal_feeds');
+
+	  if ($feeds->num_rows() === 0)
+	  {
+  	  $data = array(
+  	    'hash' => $hash,
+  	    'params' => $params_str,
+  	    'meta' => $meta_str
+  	  );
+
+  	  $this->EE->db->insert('perssonal_feeds', $data);
+
+  	  if ($this->EE->db->affected_rows() == 1)
+  	  {
+  	    $feed_url = $this->EE->functions->create_url($this->EE->functions->remove_double_slashes($url.'/'.$hash));
+  	  }
+	  }
+	  else
+	  {
+	    $feed_url = $this->EE->functions->create_url($this->EE->functions->remove_double_slashes($url.'/'.$hash));
+	  }
+	  
+	  return $feed_url;
 	  
 	}
 
   ######################################
   #  Helper functions
   ######################################
+  
+  function _make_absolute_url($str='')
+  {
+    if ( ! $str) return '';
+    
+    if (strstr($str, 'http://') OR strstr($str, 'https://'))
+    {
+      return $str;   
+    }
+    else
+    {
+      return $this->EE->functions->create_url($str);
+    }    
+  }
+  
+  /**
+  * Helper function for getting a parameter
+  * @access		private
+  * @param    $key string 
+  * @param    $default_value mixed 
+  * @return   mixed string|boolean
+  **/	
+  private function _fetch_params()
+  {
+    $approved = array();
+
+    $params = $this->EE->TMPL->tagparams ? $this->EE->TMPL->tagparams : array();    
+
+    foreach ($params as $param => $value)
+    {
+      if ( in_array($param, $this->_allowed_params) OR strstr($param, 'search:') !== FALSE )
+      {
+        $approved[$param] = $value;
+      }
+    }
+    
+    return $approved;
+  }	
+  
 
   /**
   * Helper function for getting a parameter
@@ -91,7 +206,7 @@ class Perssonal {
   {
     if ( ! $message) return;
 
-    $this->EE->TMPL->log_item('--> '.SASSEE_NAME.' : '.$message);
+    $this->EE->TMPL->log_item('--> '.PERSSONAL_NAME.' : '.$message);
 
   }
 

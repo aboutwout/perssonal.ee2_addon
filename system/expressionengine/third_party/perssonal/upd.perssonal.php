@@ -44,11 +44,26 @@ class Perssonal_upd {
 		
 		$this->EE->db->insert('modules', $mod_data);
 		
-		// $this->EE->load->dbforge();
-		/**
-		 * In order to setup your custom tables, uncomment the line above, and 
-		 * start adding them below!
-		 */
+		$this->EE->load->dbforge();
+		
+		$fields = array(
+      'hash' => array(
+        'type' => 'VARCHAR',
+        'constraint' => '32'
+      ),
+      'params' => array(
+        'type' => 'TEXT',
+        'null' => TRUE
+      ),
+      'meta' => array(
+        'type' => 'TEXT',
+        'null' => TRUE
+      ) 
+		);
+		
+    $this->EE->dbforge->add_field('id');
+    $this->EE->dbforge->add_field($fields);
+    $this->EE->dbforge->create_table('perssonal_feeds', TRUE);
 		
 		return TRUE;
 	}
@@ -64,18 +79,17 @@ class Perssonal_upd {
 	{
 		$mod_id = $this->EE->db->select('module_id')
 								->get_where('modules', array(
-									'module_name'	=> 'Perssonal'
+									'module_name'	=> PERSSONAL_NAME
 								))->row('module_id');
 		
 		$this->EE->db->where('module_id', $mod_id)
 					 ->delete('module_member_groups');
 		
-		$this->EE->db->where('module_name', 'Perssonal')
+		$this->EE->db->where('module_name', PERSSONAL_NAME)
 					 ->delete('modules');
 		
-		// $this->EE->load->dbforge();
-		// Delete your custom tables & any ACT rows 
-		// you have in the actions table
+    $this->EE->load->dbforge();
+    $this->EE->dbforge->drop_table('perssonal_feeds');
 		
 		return TRUE;
 	}
