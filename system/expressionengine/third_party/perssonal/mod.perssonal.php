@@ -18,11 +18,13 @@ class Perssonal {
 	
 	protected $_allowed_params = array(
 	  'author_id',
-	  'channel',
-	  'category_group',
 	  'category',
+	  'category_group',
+	  'channel',
 	  'group_id',
+	  'limit',
 	  'status',
+	  'uncategorized_entries',
 	  'username'
 	);
 	
@@ -49,7 +51,7 @@ class Perssonal {
 	  $meta = unserialize($feed->row('meta'));
 	  $params = unserialize($feed->row('params'));
 	  
-	  $param_str = "disable='pagination' dynamic='no'";
+	  $param_str = "sticky='no' order_by='entry_date' sort='desc' dynamic_start='yes' disable='pagination' dynamic='no'";
 	  
 	  if ( ! is_array($params) OR count($params) === 0)
 	  {
@@ -85,8 +87,8 @@ class Perssonal {
       'feed_name' => $this->_fetch_param('feed_name'),
       'feed_description' => $this->_fetch_param('feed_description')
     );
-	  $url = $this->_fetch_param('url');
-	  $feed_url = '';
+	  $path = $this->_fetch_param('path');
+	  $feed_path = '';
 	  
 	  $params_str = serialize($params);
 	  $meta_str = serialize($meta);
@@ -104,17 +106,9 @@ class Perssonal {
 
   	  $this->EE->db->insert('perssonal_feeds', $data);
 
-  	  if ($this->EE->db->affected_rows() == 1)
-  	  {
-  	    $feed_url = $this->EE->functions->create_url($this->EE->functions->remove_double_slashes($url.'/'.$hash));
-  	  }
 	  }
-	  else
-	  {
-	    $feed_url = $this->EE->functions->create_url($this->EE->functions->remove_double_slashes($url.'/'.$hash));
-	  }
-	  
-	  return $feed_url;
+
+    return $this->_make_absolute_url($path.'/'.$hash);
 	  
 	}
 
@@ -128,11 +122,11 @@ class Perssonal {
     
     if (strstr($str, 'http://') OR strstr($str, 'https://'))
     {
-      return $str;   
+      return $this->EE->functions->remove_double_slashes($str);   
     }
     else
     {
-      return $this->EE->functions->create_url($str);
+      return $this->EE->functions->create_url($this->EE->functions->remove_double_slashes($str));
     }    
   }
   
