@@ -22,7 +22,6 @@ class Perssonal {
 	  'category_group',
 	  'category',
 	  'group_id',
-	  'search:*',
 	  'status',
 	  'username'
 	);
