@@ -72,7 +72,7 @@ class Perssonal {
 	    'feed_language' => $this->EE->config->item('xml_lang'),
 	    'email' => $this->EE->config->item('webmaster_email'),
 	    'gmt_date' => $this->EE->localize->now,
-      'parameters' => $param_str
+      'perssonal:parameters' => $param_str
 	  );
 	  
 	  return $this->EE->TMPL->parse_variables_row($this->EE->TMPL->tagdata, $vars);
